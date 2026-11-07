@@ -82,14 +82,20 @@ class MyMemoryTranslator:
 
             if response_status == 200:
                 translated_text = data.get("responseData", {}).get("translatedText", "")
-                if translated_text:
-                    return {
-                        "success": True,
-                        "translated_text": translated_text,
-                        "error": None
-                    }
-                else:
+                
+                # Check for MyMemory quota warning inside 200 OK responses
+                if (
+                    not translated_text
+                    or "MYMEMORY WARNING" in translated_text.upper()
+                    or data.get("quotaFinished") is True
+                ):
                     return self._translate_fallback(text, source, target)
+
+                return {
+                    "success": True,
+                    "translated_text": translated_text,
+                    "error": None
+                }
             elif response_status in (403, 429):
                 # Rate limit / quota reached on MyMemory, trigger fallback
                 return self._translate_fallback(text, source, target)
